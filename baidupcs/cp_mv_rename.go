@@ -2,7 +2,6 @@ package baidupcs
 
 import (
 	"github.com/qjfoidnh/BaiduPCS-Go/baidupcs/pcserror"
-	"unsafe"
 )
 
 // Rename 重命名文件/目录
@@ -37,6 +36,7 @@ func (pcs *BaiduPCS) cpmvOp(op string, cpmvJSON ...*CpMvJSON) (pcsError pcserror
 	}
 
 	// 更新缓存
-	pcs.deleteCache((*CpMvJSONList)(unsafe.Pointer(&cpmvJSON)).AllRelatedDir())
+	list := (*CpMvJSONList)(&cpmvJSON)
+	pcs.deleteCache(list.AllRelatedDir())
 	return nil
 }
