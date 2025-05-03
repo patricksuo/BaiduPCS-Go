@@ -2,10 +2,10 @@
 package getip
 
 import (
-	"github.com/qjfoidnh/BaiduPCS-Go/requester"
 	"net"
 	"net/http"
-	"unsafe"
+
+	"github.com/qjfoidnh/BaiduPCS-Go/requester"
 )
 
 // IPInfoByClient 给定client获取ip地址
@@ -19,7 +19,7 @@ func IPInfoByClient(c *requester.HTTPClient) (ipAddr string, err error) {
 		return
 	}
 
-	ipAddr = *(*string)(unsafe.Pointer(&body))
+	ipAddr = string(body)
 	ip := net.ParseIP(ipAddr)
 	if ip == nil {
 		return "", ErrParseIP
@@ -27,7 +27,7 @@ func IPInfoByClient(c *requester.HTTPClient) (ipAddr string, err error) {
 	return
 }
 
-//IPInfo 从ipify获取IP地址
+// IPInfo 从ipify获取IP地址
 func IPInfo(https bool) (ipAddr string, err error) {
 	c := requester.NewHTTPClient()
 	c.SetHTTPSecure(https)
