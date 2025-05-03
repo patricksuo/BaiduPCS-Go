@@ -6,8 +6,9 @@ import (
 	"crypto/cipher"
 	cryptorand "crypto/rand"
 	"fmt"
-	"github.com/qjfoidnh/Baidu-Login/bdcrypto/ecb"
 	"io"
+
+	"github.com/qjfoidnh/BaiduPCS-Go/bdcrypto/ecb"
 )
 
 // AesMode AES 工作模式

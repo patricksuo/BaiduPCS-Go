@@ -2,9 +2,10 @@ package netdisksign_test
 
 import (
 	"fmt"
-	"github.com/qjfoidnh/Baidu-Login/bdcrypto"
-	"github.com/qjfoidnh/BaiduPCS-Go/baidupcs/netdisksign"
 	"testing"
+
+	"github.com/qjfoidnh/BaiduPCS-Go/baidupcs/netdisksign"
+	"github.com/qjfoidnh/BaiduPCS-Go/bdcrypto"
 )
 
 func TestSign2(t *testing.T) {
