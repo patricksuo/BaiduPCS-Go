@@ -3,15 +3,15 @@ package baidupcs
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
+	"strconv"
+	"strings"
+
 	"github.com/olekukonko/tablewriter"
 	"github.com/qjfoidnh/BaiduPCS-Go/baidupcs/pcserror"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcstable"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcsutil/converter"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcsutil/pcstime"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"unsafe"
 )
 
 type (
@@ -48,10 +48,10 @@ type (
 		Mtime    int64  // 修改日期
 		MD5      string // md5 值
 		BlockListJSON
-		Size        int64 // 文件大小 (目录为0)
-		Isdir       bool  // 是否为目录
-		Ifhassubdir bool  // 是否含有子目录 (只对目录有效)
-		PreBase   string  // 真正的base目录
+		Size        int64  // 文件大小 (目录为0)
+		Isdir       bool   // 是否为目录
+		Ifhassubdir bool   // 是否含有子目录 (只对目录有效)
+		PreBase     string // 真正的base目录
 
 		Parent   *FileDirectory    // 父目录信息
 		Children FileDirectoryList // 子目录信息
@@ -139,14 +139,17 @@ func (pcs *BaiduPCS) FilesDirectoriesBatchMeta(paths ...string) (data FileDirect
 
 	errInfo := pcserror.NewPCSErrorInfo(OperationFilesDirectoriesMeta)
 	// 服务器返回数据进行处理
-	jsonData := fdData{
+
+	remoteData := &fdDataJSONExport{
 		PCSErrInfo: errInfo,
 	}
 
-	pcsError = pcserror.HandleJSONParse(OperationFilesDirectoriesMeta, dataReadCloser, (*fdDataJSONExport)(unsafe.Pointer(&jsonData)))
+	pcsError = pcserror.HandleJSONParse(OperationFilesDirectoriesMeta, dataReadCloser, remoteData)
 	if pcsError != nil {
 		return
 	}
+
+	jsonData := fdDataJSONExportToFdData(remoteData)
 
 	// 修复MD5
 	jsonData.List.fixMD5()
@@ -164,15 +167,17 @@ func (pcs *BaiduPCS) FilesDirectoriesList(path string, options *OrderOptions) (d
 
 	defer dataReadCloser.Close()
 
-	jsonData := fdData{
-		PCSErrInfo: pcserror.NewPCSErrorInfo(OperationFilesDirectoriesList),
+	errInfo := pcserror.NewPCSErrorInfo(OperationFilesDirectoriesList)
+	remoteData := &fdDataJSONExport{
+		PCSErrInfo: errInfo,
 	}
 
-	pcsError = pcserror.HandleJSONParse(OperationFilesDirectoriesList, dataReadCloser, (*fdDataJSONExport)(unsafe.Pointer(&jsonData)))
+	pcsError = pcserror.HandleJSONParse(OperationFilesDirectoriesList, dataReadCloser, remoteData)
 	if pcsError != nil {
 		return nil, pcsError
 	}
 
+	jsonData := fdDataJSONExportToFdData(remoteData)
 	// 修复MD5
 	jsonData.List.fixMD5()
 
@@ -194,15 +199,16 @@ func (pcs *BaiduPCS) Search(targetPath, keyword string, recursive bool) (fdl Fil
 	defer dataReadCloser.Close()
 
 	errInfo := pcserror.NewPCSErrorInfo(OperationSearch)
-	jsonData := fdData{
+	remoteData := &fdDataJSONExport{
 		PCSErrInfo: errInfo,
 	}
 
-	pcsError = pcserror.HandleJSONParse(OperationSearch, dataReadCloser, (*fdDataJSONExport)(unsafe.Pointer(&jsonData)))
+	pcsError = pcserror.HandleJSONParse(OperationSearch, dataReadCloser, remoteData)
 	if pcsError != nil {
 		return
 	}
 
+	jsonData := fdDataJSONExportToFdData(remoteData)
 	// 修复MD5
 	jsonData.List.fixMD5()
 
@@ -372,4 +378,42 @@ func (fl FileDirectoryList) AllFilePaths() (pcspaths []string) {
 		}
 	}
 	return
+}
+
+func fdJsonToFileDirectory(src *fdJSON) *FileDirectory {
+	if src == nil {
+		return nil
+	}
+
+	result := &FileDirectory{
+		FsID:     src.FsID,
+		AppID:    src.AppID,
+		Path:     src.Path,
+		Filename: src.Filename,
+		Ctime:    src.Ctime,
+		Mtime:    src.Mtime,
+		MD5:      src.MD5,
+
+		Size:        src.Size,
+		Isdir:       src.IsdirInt != 0,
+		Ifhassubdir: src.IfhassubdirInt != 0,
+	}
+
+	result.BlockListJSON = src.BlockListJSON
+
+	return result
+}
+
+func fdDataJSONExportToFdData(src *fdDataJSONExport) *fdData {
+	if src == nil {
+		return nil
+	}
+
+	var result fdData
+	result.PCSErrInfo = src.PCSErrInfo
+	for _, fd := range src.List {
+		result.List = append(result.List, fdJsonToFileDirectory(fd))
+	}
+
+	return &result
 }
