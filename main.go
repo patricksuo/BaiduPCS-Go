@@ -401,8 +401,6 @@ func main() {
 			Usage: "登录百度账号",
 			Description: `
 	示例:
-		BaiduPCS-Go login
-		BaiduPCS-Go login -username=liuhua
 		BaiduPCS-Go login -bduss=123456789 -stoken=atahsrweoog
 		BaiduPCS-Go login -cookies="BDUSS=xxxxx; BAIDUID=yyyyyy; STOKEN=zzzzz; ...."
 
@@ -426,13 +424,6 @@ func main() {
 					bduss = c.String("bduss")
 					ptoken = c.String("ptoken")
 					stoken = c.String("stoken")
-				} else if c.NArg() == 0 {
-					var err error
-					bduss, ptoken, stoken, cookies, err = pcscommand.RunLogin(c.String("username"), c.String("password"))
-					if err != nil {
-						fmt.Println(err)
-						return err
-					}
 				} else {
 					cli.ShowCommandHelp(c, c.Command.Name)
 					return nil
@@ -448,14 +439,6 @@ func main() {
 				return nil
 			},
 			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "username",
-					Usage: "登录百度帐号的用户名(手机号/邮箱/用户名)",
-				},
-				cli.StringFlag{
-					Name:  "password",
-					Usage: "登录百度帐号的用户名的密码",
-				},
 				cli.StringFlag{
 					Name:  "bduss",
 					Usage: "使用百度 BDUSS 来登录百度帐号",
