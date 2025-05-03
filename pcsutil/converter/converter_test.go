@@ -1,9 +1,10 @@
 package converter_test
 
 import (
-	"github.com/qjfoidnh/BaiduPCS-Go/pcsutil/converter"
 	"strings"
 	"testing"
+
+	"github.com/qjfoidnh/BaiduPCS-Go/pcsutil/converter"
 )
 
 func TestTrimPathInvalidChars(t *testing.T) {
@@ -11,5 +12,4 @@ func TestTrimPathInvalidChars(t *testing.T) {
 	if strings.Compare(trimmed, "ksjadfiadf") != 0 {
 		t.Fatalf("trimmed: %s\n", trimmed)
 	}
-	return
 }
