@@ -1,7 +1,6 @@
 package pcsutil
 
 import (
-	"github.com/kardianos/osext"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcsverbose"
 	"io/fs"
 	"os"
@@ -45,9 +44,9 @@ func ChWorkDir() {
 
 // Executable 获取程序所在的真实目录或真实相对路径
 func Executable() string {
-	executablePath, err := osext.Executable()
+	executablePath, err := os.Executable()
 	if err != nil {
-		pcsverbose.Verbosef("DEBUG: osext.Executable: %s\n", err)
+		pcsverbose.Verbosef("DEBUG: os.Executable: %s\n", err)
 		executablePath, err = filepath.Abs(filepath.Dir(os.Args[0]))
 		if err != nil {
 			pcsverbose.Verbosef("DEBUG: filepath.Abs: %s\n", err)

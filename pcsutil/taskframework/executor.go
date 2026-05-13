@@ -1,18 +1,18 @@
 package taskframework
 
 import (
-	"github.com/GeertJohan/go.incremental"
 	"github.com/oleiade/lane"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcsutil/waitgroup"
 	"strconv"
+	"sync/atomic"
 	"time"
 )
 
 type (
 	TaskExecutor struct {
-		incr     *incremental.Int // 任务id生成
-		deque    *lane.Deque      // 队列
-		parallel int              // 任务的最大并发量
+		incr     atomic.Int64 // 任务id生成
+		deque    *lane.Deque  // 队列
+		parallel int          // 任务的最大并发量
 
 		// 是否统计失败队列
 		IsFailedDeque bool
@@ -27,9 +27,6 @@ func NewTaskExecutor() *TaskExecutor {
 func (te *TaskExecutor) lazyInit() {
 	if te.deque == nil {
 		te.deque = lane.NewDeque()
-	}
-	if te.incr == nil {
-		te.incr = &incremental.Int{}
 	}
 	if te.parallel < 1 {
 		te.parallel = 1
@@ -48,7 +45,7 @@ func (te *TaskExecutor) SetParallel(parallel int) {
 func (te *TaskExecutor) Append(unit TaskUnit, maxRetry int) *TaskInfo {
 	te.lazyInit()
 	taskInfo := &TaskInfo{
-		id:       strconv.Itoa(te.incr.Next()),
+		id:       strconv.FormatInt(te.incr.Add(1), 10),
 		maxRetry: maxRetry,
 	}
 	unit.SetTaskInfo(taskInfo)
