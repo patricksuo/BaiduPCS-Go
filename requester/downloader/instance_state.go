@@ -2,40 +2,27 @@ package downloader
 
 import (
 	"errors"
-	"github.com/golang/protobuf/proto"
+	"github.com/json-iterator/go"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcsutil/cachepool"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcsverbose"
 	"github.com/qjfoidnh/BaiduPCS-Go/requester/transfer"
-	"github.com/json-iterator/go"
 	"os"
 	"sync"
 )
 
 type (
-	//InstanceState 状态, 断点续传信息
+	//InstanceState 状态, 断点续传信息, 以 json 格式保存到本地文件
 	InstanceState struct {
 		saveFile *os.File
-		format   InstanceStateStorageFormat
 		ii       transfer.DownloadInstanceInfoExporter
 		mu       sync.Mutex
 	}
-
-	// InstanceStateStorageFormat 断点续传储存类型
-	InstanceStateStorageFormat int
 )
 
-const (
-	// InstanceStateStorageFormatJSON json 格式
-	InstanceStateStorageFormatJSON = iota
-	// InstanceStateStorageFormatProto3 protobuf 格式
-	InstanceStateStorageFormatProto3
-)
-
-//NewInstanceState 初始化InstanceState
-func NewInstanceState(saveFile *os.File, format InstanceStateStorageFormat) *InstanceState {
+// NewInstanceState 初始化InstanceState
+func NewInstanceState(saveFile *os.File) *InstanceState {
 	return &InstanceState{
 		saveFile: saveFile,
-		format:   format,
 	}
 }
 
@@ -65,7 +52,7 @@ func (is *InstanceState) getSaveFileContents() []byte {
 	return buf[:n]
 }
 
-//Get 获取断点续传信息
+// Get 获取断点续传信息
 func (is *InstanceState) Get() (eii *transfer.DownloadInstanceInfo) {
 	if !is.checkSaveFile() {
 		return nil
@@ -80,15 +67,7 @@ func (is *InstanceState) Get() (eii *transfer.DownloadInstanceInfo) {
 	}
 
 	is.ii = &transfer.DownloadInstanceInfoExport{}
-	var err error
-	switch is.format {
-	case InstanceStateStorageFormatProto3:
-		err = proto.Unmarshal(contents, is.ii.(*transfer.DownloadInstanceInfoExport))
-	default:
-		err = jsoniter.Unmarshal(contents, is.ii)
-	}
-
-	if err != nil {
+	if err := jsoniter.Unmarshal(contents, is.ii); err != nil {
 		pcsverbose.Verbosef("DEBUG: InstanceInfo unmarshal error: %s\n", err)
 		return
 	}
@@ -97,7 +76,7 @@ func (is *InstanceState) Get() (eii *transfer.DownloadInstanceInfo) {
 	return
 }
 
-//Put 提交断点续传信息
+// Put 提交断点续传信息
 func (is *InstanceState) Put(eii *transfer.DownloadInstanceInfo) {
 	if !is.checkSaveFile() {
 		return
@@ -110,16 +89,7 @@ func (is *InstanceState) Put(eii *transfer.DownloadInstanceInfo) {
 		is.ii = &transfer.DownloadInstanceInfoExport{}
 	}
 	is.ii.SetInstanceInfo(eii)
-	var (
-		data []byte
-		err  error
-	)
-	switch is.format {
-	case InstanceStateStorageFormatProto3:
-		data, err = proto.Marshal(is.ii.(*transfer.DownloadInstanceInfoExport))
-	default:
-		data, err = jsoniter.Marshal(is.ii)
-	}
+	data, err := jsoniter.Marshal(is.ii)
 	if err != nil {
 		panic(err)
 	}
@@ -135,7 +105,7 @@ func (is *InstanceState) Put(eii *transfer.DownloadInstanceInfo) {
 	}
 }
 
-//Close 关闭
+// Close 关闭
 func (is *InstanceState) Close() error {
 	if !is.checkSaveFile() {
 		return nil
@@ -144,7 +114,7 @@ func (is *InstanceState) Close() error {
 	return is.saveFile.Close()
 }
 
-func (der *Downloader) initInstanceState(format InstanceStateStorageFormat) (err error) {
+func (der *Downloader) initInstanceState() (err error) {
 	if der.instanceState != nil {
 		return errors.New("already initInstanceState")
 	}
@@ -157,7 +127,7 @@ func (der *Downloader) initInstanceState(format InstanceStateStorageFormat) (err
 		}
 	}
 
-	der.instanceState = NewInstanceState(saveFile, format)
+	der.instanceState = NewInstanceState(saveFile)
 	return nil
 }
 

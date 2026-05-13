@@ -4,7 +4,6 @@ go 1.23
 
 require (
 	github.com/fatih/color v1.18.0
-	github.com/golang/protobuf v1.5.4
 	github.com/json-iterator/go v1.1.12
 	github.com/mattn/go-runewidth v0.0.9
 	github.com/oleiade/lane v1.0.1
@@ -32,6 +31,5 @@ require (
 	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
-	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )

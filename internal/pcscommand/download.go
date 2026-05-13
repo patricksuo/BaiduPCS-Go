@@ -73,13 +73,12 @@ func RunDownload(paths []string, options *DownloadOptions) {
 
 	// 设置下载配置
 	cfg := &downloader.Config{
-		Mode:                       transfer.RangeGenMode_BlockSize,
-		CacheSize:                  pcsconfig.Config.CacheSize,
-		BlockSize:                  baidupcs.InitRangeSize,
-		MaxRate:                    pcsconfig.Config.MaxDownloadRate,
-		InstanceStateStorageFormat: downloader.InstanceStateStorageFormatProto3,
-		IsTest:                     options.IsTest,
-		TryHTTP:                    !pcsconfig.Config.EnableHTTPS,
+		Mode:      transfer.RangeGenMode_BlockSize,
+		CacheSize: pcsconfig.Config.CacheSize,
+		BlockSize: baidupcs.InitRangeSize,
+		MaxRate:   pcsconfig.Config.MaxDownloadRate,
+		IsTest:    options.IsTest,
+		TryHTTP:   !pcsconfig.Config.EnableHTTPS,
 	}
 
 	// 设置下载最大并发量

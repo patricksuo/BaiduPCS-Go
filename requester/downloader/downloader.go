@@ -345,7 +345,7 @@ func (der *Downloader) Execute() error {
 	if !single {
 		//load breakpoint
 		//服务端不支持多线程时, 不记录断点
-		err := der.initInstanceState(der.config.InstanceStateStorageFormat)
+		err := der.initInstanceState()
 		if err != nil {
 			return err
 		}
