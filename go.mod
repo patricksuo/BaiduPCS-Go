@@ -10,22 +10,19 @@ require (
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/peterh/liner v1.2.2
 	github.com/tidwall/gjson v1.18.0
-	github.com/urfave/cli v1.22.5
 	golang.org/x/sys v0.25.0 // indirect
 )
 
-require golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+require (
+	github.com/urfave/cli/v3 v3.9.0
+	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+)
 
 require (
-	github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/russross/blackfriday/v2 v2.0.1 // indirect
-	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
-	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
-	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
