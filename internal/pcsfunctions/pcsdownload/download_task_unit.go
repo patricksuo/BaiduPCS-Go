@@ -81,7 +81,7 @@ const (
 	DownloadModeStreaming
 )
 
-var client *requester.HTTPClient
+//var client *requester.HTTPClient
 
 func (dtu *DownloadTaskUnit) SetTaskInfo(info *taskframework.TaskInfo) {
 	dtu.taskInfo = info
@@ -231,12 +231,11 @@ func (dtu *DownloadTaskUnit) download(downloadURL string, client *requester.HTTP
 	return nil
 }
 
-//panHTTPClient 获取包含特定User-Agent的HTTPClient
-func (dtu *DownloadTaskUnit) panHTTPClient() (*requester.HTTPClient) {
-	if client == nil {
-		client = pcsconfig.Config.PanHTTPClient()
-	}
-	//client = pcsconfig.Config.PanHTTPClient() // 此处将client 设为全局变量，理论上可优化TCP连接数
+// panHTTPClient 获取包含特定User-Agent的HTTPClient
+func (dtu *DownloadTaskUnit) panHTTPClient() *requester.HTTPClient {
+	//if client == nil {
+	client := pcsconfig.Config.PanHTTPClient()
+	//}
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		// 去掉 Referer
 		if !pcsconfig.Config.EnableHTTPS {
@@ -247,7 +246,7 @@ func (dtu *DownloadTaskUnit) panHTTPClient() (*requester.HTTPClient) {
 		}
 		return nil
 	}
-	client.SetTimeout(4 * time.Minute)
+	client.SetTimeout(2 * time.Minute)
 	client.SetKeepAlive(true)
 	return client
 }
@@ -284,6 +283,10 @@ func (dtu *DownloadTaskUnit) execPanDownload(dlink string, result *taskframework
 	dtu.verboseInfof("[%s] 获取到下载链接: %s\n", dtu.taskInfo.Id(), dlink)
 
 	client := dtu.panHTTPClient()
+	activePCS := pcsconfig.Config.ActiveUserBaiduPCS()
+	cookieJar := activePCS.GetClient().Jar
+	newCookieJar, _ := CloneJarWithDomain(cookieJar, dlink)
+	client.SetCookiejar(newCookieJar)
 	err := dtu.download(dlink, client)
 	if err != nil {
 		result.ResultMessage = StrDownloadFailed
