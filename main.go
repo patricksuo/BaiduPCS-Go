@@ -20,7 +20,6 @@ import (
 	"github.com/qjfoidnh/BaiduPCS-Go/internal/pcsconfig"
 	"github.com/qjfoidnh/BaiduPCS-Go/internal/pcsfunctions/pcsdownload"
 	_ "github.com/qjfoidnh/BaiduPCS-Go/internal/pcsinit"
-	"github.com/qjfoidnh/BaiduPCS-Go/internal/pcsupdate"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcsliner"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcsliner/args"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcstable"
@@ -374,26 +373,6 @@ func main() {
 				}
 
 				return nil
-			},
-		},
-		{
-			Name:     "update",
-			Usage:    "检测程序更新",
-			Category: "其他",
-			Action: func(c *cli.Context) error {
-				if c.IsSet("y") {
-					if !c.Bool("y") {
-						return nil
-					}
-				}
-				pcsupdate.CheckUpdate(app.Version, c.Bool("y"))
-				return nil
-			},
-			Flags: []cli.Flag{
-				cli.BoolFlag{
-					Name:  "y",
-					Usage: "确认更新",
-				},
 			},
 		},
 		{
