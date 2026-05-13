@@ -1987,7 +1987,7 @@ func main() {
 					Name:  "showtime",
 					Usage: "显示当前时间(北京时间)",
 					Action: func(_ context.Context, c *cli.Command) error {
-						fmt.Printf(pcstime.BeijingTimeOption("printLog"))
+						fmt.Print(pcstime.BeijingTimeOption("printLog"))
 						return nil
 					},
 				},

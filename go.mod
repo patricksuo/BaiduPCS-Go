@@ -1,8 +1,6 @@
 module github.com/qjfoidnh/BaiduPCS-Go
 
-go 1.23.0
-
-toolchain go1.24.3
+go 1.25.0
 
 require (
 	github.com/fatih/color v1.18.0
@@ -11,12 +9,12 @@ require (
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/peterh/liner v1.2.2
 	github.com/tidwall/gjson v1.18.0
-	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/sys v0.44.0 // indirect
 )
 
 require (
 	github.com/urfave/cli/v3 v3.9.0
-	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+	golang.org/x/net v0.54.0
 )
 
 require (
