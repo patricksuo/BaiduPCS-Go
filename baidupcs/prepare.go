@@ -2,6 +2,7 @@ package baidupcs
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,7 +12,6 @@ import (
 	"strings"
 	"unsafe"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/qjfoidnh/BaiduPCS-Go/baidupcs/netdisksign"
 	"github.com/qjfoidnh/BaiduPCS-Go/baidupcs/pcserror"
 	"github.com/qjfoidnh/BaiduPCS-Go/internal/tieba"
@@ -835,7 +835,7 @@ func (pcs *BaiduPCS) PrepareRecycleRestore(fidList ...int64) (dataReadCloser io.
 		List: fsIDList,
 	}
 
-	sendData, err := jsoniter.Marshal(&fsIDListJSON)
+	sendData, err := json.Marshal(&fsIDListJSON)
 	if err != nil {
 		panic(err)
 	}

@@ -2,7 +2,7 @@
 package pcsconfig
 
 import (
-	"github.com/json-iterator/go"
+	"encoding/json"
 	"github.com/qjfoidnh/BaiduPCS-Go/baidupcs"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcsutil"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcsutil/jsonhelper"
@@ -109,7 +109,7 @@ func (c *PCSConfig) Save() error {
 	c.fileMu.Lock()
 	defer c.fileMu.Unlock()
 
-	data, err := jsoniter.MarshalIndent(c, "", " ")
+	data, err := json.MarshalIndent(c, "", " ")
 	if err != nil {
 		// json数据生成失败
 		panic(err)

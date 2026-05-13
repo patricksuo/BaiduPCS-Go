@@ -1,10 +1,10 @@
 package baidupcs
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcstable"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcsutil"
-	"github.com/json-iterator/go"
 	"path"
 	"strconv"
 	"strings"
@@ -66,19 +66,19 @@ func (plj *PathsListJSON) JSON(paths ...string) (data []byte, err error) {
 		}
 	}
 
-	data, err = jsoniter.Marshal(plj)
+	data, err = json.Marshal(plj)
 	return
 }
 
 // JSON json 数据构造
 func (cj *CpMvJSON) JSON() (data []byte, err error) {
-	data, err = jsoniter.Marshal(cj)
+	data, err = json.Marshal(cj)
 	return
 }
 
 // JSON json 数据构造
 func (clj *CpMvListJSON) JSON() (data []byte, err error) {
-	data, err = jsoniter.Marshal(clj)
+	data, err = json.Marshal(clj)
 	return
 }
 

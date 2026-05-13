@@ -1,8 +1,8 @@
 package downloader
 
 import (
+	"encoding/json"
 	"errors"
-	"github.com/json-iterator/go"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcsutil/cachepool"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcsverbose"
 	"github.com/qjfoidnh/BaiduPCS-Go/requester/transfer"
@@ -67,7 +67,7 @@ func (is *InstanceState) Get() (eii *transfer.DownloadInstanceInfo) {
 	}
 
 	is.ii = &transfer.DownloadInstanceInfoExport{}
-	if err := jsoniter.Unmarshal(contents, is.ii); err != nil {
+	if err := json.Unmarshal(contents, is.ii); err != nil {
 		pcsverbose.Verbosef("DEBUG: InstanceInfo unmarshal error: %s\n", err)
 		return
 	}
@@ -89,7 +89,7 @@ func (is *InstanceState) Put(eii *transfer.DownloadInstanceInfo) {
 		is.ii = &transfer.DownloadInstanceInfoExport{}
 	}
 	is.ii.SetInstanceInfo(eii)
-	data, err := jsoniter.Marshal(is.ii)
+	data, err := json.Marshal(is.ii)
 	if err != nil {
 		panic(err)
 	}
