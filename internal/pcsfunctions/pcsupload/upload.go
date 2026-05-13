@@ -5,7 +5,6 @@ import (
 	"github.com/qjfoidnh/BaiduPCS-Go/baidupcs"
 	"github.com/qjfoidnh/BaiduPCS-Go/baidupcs/pcserror"
 	"github.com/qjfoidnh/BaiduPCS-Go/internal/pcsconfig"
-	"github.com/qjfoidnh/BaiduPCS-Go/requester"
 	"github.com/qjfoidnh/BaiduPCS-Go/requester/multipartreader"
 	"github.com/qjfoidnh/BaiduPCS-Go/requester/rio"
 	"github.com/qjfoidnh/BaiduPCS-Go/requester/uploader"
@@ -24,7 +23,9 @@ type (
 	}
 )
 
-var client *requester.HTTPClient = pcsconfig.Config.PCSHTTPClient()
+var client = pcsconfig.Config.PCSHTTPClient()
+
+var pcsPeriod = 256 // 上传多少个分片更换一次pcsHost
 
 func (e EmptyReaderLen64) Read(p []byte) (n int, err error) {
 	return 0, io.EOF
@@ -47,18 +48,28 @@ func (pu *PCSUpload) lazyInit() {
 	}
 }
 
-// Precreate 检查网盘的目标路径是否已存在同名文件及路径合法性
-func (pu *PCSUpload) Precreate(fileSize int64, policy string) pcserror.Error {
-	pcsError := pu.pcs.CheckIsdir(baidupcs.OperationUpload, pu.targetPath, policy, fileSize)
-	return pcsError
+// Precreate 上传前准备, 获取本次上传用的pcs服务器
+func (pu *PCSUpload) Precreate() (originPCSHost string, pcsError pcserror.Error) {
+	originPCSHost = pu.pcs.GetPCSAddr()
+	_, newPCSHost := pu.pcs.GetRandomPCSHost()
+	pu.pcs.SetPCSAddr(newPCSHost)
+	return
 }
 
 func (pu *PCSUpload) TmpFile(ctx context.Context, uploadId, targetPath string, partSeq int, partOffset int64, r rio.ReaderLen64) (checksum string, uperr error) {
 	pu.lazyInit()
 
 	var respErr *uploader.MultiError
+
+	// 每上传一定量分片切换一次动态pcs addr
+	if partSeq%pcsPeriod == pcsPeriod-1 {
+		go func() {
+			_, newPCSHost := pu.pcs.GetRandomPCSHost()
+			pu.pcs.SetPCSAddr(newPCSHost)
+		}()
+	}
+
 	checksum, pcsError := pu.pcs.UploadTmpFile(uploadId, targetPath, partSeq, partOffset, func(uploadURL string, jar http.CookieJar) (resp *http.Response, err error) {
-		//client := pcsconfig.Config.PCSHTTPClient()
 		client.SetCookiejar(jar)
 		client.SetTimeout(200 * time.Second)
 
@@ -99,27 +110,8 @@ func (pu *PCSUpload) TmpFile(ctx context.Context, uploadId, targetPath string, p
 	return checksum, pcsError
 }
 
-func (pu *PCSUpload) CreateSuperFile(policy string, checksumList ...string) (err error) {
+func (pu *PCSUpload) CreateSuperFile(pcsHost, policy, uploadId string, fileSize int64, checksumMap map[int]string) (err error) {
 	pu.lazyInit()
-	//newpath := ""
-	// 先在网盘目标位置, 上传一个空文件
-	// 防止出现file does not exist
-	pcsError, newpath := pu.pcs.Upload(policy, pu.targetPath, func(uploadURL string, jar http.CookieJar) (resp *http.Response, err error) {
-		mr := multipartreader.NewMultipartReader()
-		mr.AddFormFile("file", "file", &EmptyReaderLen64{})
-		mr.CloseMultipart()
-
-		c := requester.NewHTTPClient()
-		c.SetCookiejar(jar)
-		return c.Req(http.MethodPost, uploadURL, mr, nil)
-	})
-	if pcsError != nil {
-		// 修改操作
-		pcsError.(*pcserror.PCSErrInfo).Operation = baidupcs.OperationUploadCreateSuperFile
-		return pcsError
-	}
-
-	// 此时已到了最后的合并环节，policy只能使用overwrite, newpath而不用pu.targetPath是因为newcopy策略可能导致文件名变化
-	//return pu.pcs.UploadCreateSuperFile("overwrite",false, pu.targetPath, checksumList...)
-	return pu.pcs.UploadCreateSuperFile("overwrite", false, newpath, checksumList...)
+	pu.pcs.SetPCSAddr(pcsHost) // 恢复默认pcs服务器
+	return pu.pcs.UploadCreateSuperFile(uploadId, policy, fileSize, pu.targetPath, checksumMap)
 }

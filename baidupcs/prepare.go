@@ -116,6 +116,19 @@ func (pcs *BaiduPCS) PrepareUK() (dataReadCloser io.ReadCloser, pcsError pcserro
 	return
 }
 
+// PreparePCSServers 获取推荐的pcs服务器URL
+func (pcs *BaiduPCS) PreparePCSServers() (dataReadCloser io.ReadCloser, pcsError pcserror.Error) {
+	pcs.lazyInit()
+	pcsURL := pcs.generatePCSURL("file", "locateupload", map[string]string{
+		"upload_version": "2.0",
+		"app_id":         PanAppID,
+	})
+	baiduPCSVerbose.Infof("%s URL: %s\n", OperationGetPCSServer, pcsURL)
+
+	dataReadCloser, pcsError = pcs.sendReqReturnReadCloser(reqTypePCS, OperationGetPCSServer, http.MethodGet, pcsURL.String(), nil, nil)
+	return
+}
+
 // PrepareQuotaInfo 获取当前用户空间配额信息, 只返回服务器响应数据和错误信息
 func (pcs *BaiduPCS) PrepareQuotaInfo() (dataReadCloser io.ReadCloser, pcsError pcserror.Error) {
 	pcs.lazyInit()
@@ -160,7 +173,6 @@ func (pcs *BaiduPCS) PrepareFilesDirectoriesList(path string, options *OrderOpti
 		"path":  path,
 		"by":    *(*string)(unsafe.Pointer(&options.By)),
 		"order": *(*string)(unsafe.Pointer(&options.Order)),
-		"limit": "0-2147483647",
 	})
 	baiduPCSVerbose.Infof("%s URL: %s\n", OperationFilesDirectoriesList, pcsURL)
 
@@ -328,9 +340,10 @@ func (pcs *BaiduPCS) prepareRapidUpload(targetPath, contentMD5, sliceMD5, crc32 
 }
 
 // prepareRapidUploadV2 秒传文件接口2, 不进行文件夹检查
-func (pcs *BaiduPCS) prepareRapidUploadV2(targetPath, contentMD5, sliceMD5, dataContent, crc32 string, offset, length, totalSize, dataTime int64) (dataReadCloser io.ReadCloser, pcsError pcserror.Error) {
+func (pcs *BaiduPCS) prepareRapidUploadV2(targetPath, uploadid, policy, contentMD5, sliceMD5, dataContent, crc32 string, offset, length, totalSize, dataTime int64, blockListMD5 []string) (dataReadCloser io.ReadCloser, pcsError pcserror.Error) {
 	pcsURL := pcs.generatePanURL("precreate", nil)
 	post := map[string]string{
+		"uploadid":     uploadid,
 		"path":         targetPath,
 		"target_path":  path.Dir(targetPath) + "/",
 		"size":         strconv.FormatInt(totalSize, 10),
@@ -338,7 +351,7 @@ func (pcs *BaiduPCS) prepareRapidUploadV2(targetPath, contentMD5, sliceMD5, data
 		"isdir":        "0",
 		"local_mtime":  strconv.FormatInt(dataTime, 10),
 		"local_ctime":  strconv.FormatInt(dataTime, 10),
-		"rtype":        "2",
+		"rtype":        policy,
 		"checkexist":   "0",
 		"autoinit":     "1",
 		"content-md5":  contentMD5,
@@ -346,8 +359,36 @@ func (pcs *BaiduPCS) prepareRapidUploadV2(targetPath, contentMD5, sliceMD5, data
 		"data_time":    strconv.FormatInt(dataTime, 10),
 		"data_length":  strconv.FormatInt(length, 10),
 		"data_content": dataContent,
-		"block_list":   mergeStringList(contentMD5),
+		"block_list":   mergeStringList(blockListMD5...),
 		"mode":         "1",
+	}
+	baiduPCSVerbose.Infof("%s URL: %s, Post: %v\n", OperationRapidUpload, pcsURL, post)
+
+	if uploadid == "" {
+		delete(post, "uploadid")
+	}
+
+	dataReadCloser, pcsError = pcs.sendReqReturnReadCloser(reqTypePan, OperationRapidUpload, http.MethodPost, pcsURL.String(), post, map[string]string{
+		"Content-Type": "application/x-www-form-urlencoded",
+		"Accept":       "*/*",
+		"Connection":   "keep-alive",
+	})
+	return
+}
+
+func (pcs *BaiduPCS) prepareFakeRapidUploadV2(targetPath, policy string, dateTime int64, blockListMD5 []string) (dataReadCloser io.ReadCloser, pcsError pcserror.Error) {
+	pcsURL := pcs.generatePanURL("precreate", map[string]string{
+		"app_id":  PanAppID,
+		"channel": "1",
+		"web":     "1",
+	})
+	post := map[string]string{
+		"path":        targetPath,
+		"target_path": path.Dir(targetPath) + "/",
+		"local_mtime": strconv.FormatInt(dateTime, 10),
+		"autoinit":    "1",
+		"rtype":       policy,
+		"block_list":  mergeStringList(blockListMD5...),
 	}
 	baiduPCSVerbose.Infof("%s URL: %s, Post: %v\n", OperationRapidUpload, pcsURL, post)
 
@@ -371,13 +412,24 @@ func (pcs *BaiduPCS) PrepareRapidUpload(targetPath, contentMD5, sliceMD5, crc32 
 }
 
 // PrepareRapidUploadV2 秒传文件新接口, 只返回服务器响应数据和错误信息
-func (pcs *BaiduPCS) PrepareRapidUploadV2(targetPath, contentMD5, sliceMD5, dataContent, crc32 string, offset, length, totalSize, dataTime int64) (dataReadCloser io.ReadCloser, pcsError pcserror.Error) {
+func (pcs *BaiduPCS) PrepareRapidUploadV2(targetPath, policy, uploadid, contentMD5, sliceMD5, dataContent, crc32 string, offset, length, totalSize, dataTime int64, blockListMD5 []string) (dataReadCloser io.ReadCloser, pcsError pcserror.Error) {
 	pcs.lazyInit()
-	pcsError = pcs.CheckIsdir(OperationRapidUpload, targetPath, "", totalSize)
+	pcsError = pcs.CheckIsdir(OperationRapidUpload, targetPath, policy, totalSize)
 	if pcsError != nil {
 		return nil, pcsError
 	}
-	return pcs.prepareRapidUploadV2(targetPath, contentMD5, sliceMD5, dataContent, crc32, offset, length, totalSize, dataTime)
+	rtype := pcs.policyTortype(policy)
+	return pcs.prepareRapidUploadV2(targetPath, uploadid, rtype, contentMD5, sliceMD5, dataContent, crc32, offset, length, totalSize, dataTime, blockListMD5)
+}
+
+func (pcs *BaiduPCS) PrepareFakeRapidUploadV2(targetPath, policy string, length, dataTime int64, blockListMD5 []string) (dataReadCloser io.ReadCloser, pcsError pcserror.Error) {
+	pcs.lazyInit()
+	pcsError = pcs.CheckIsdir(OperationRapidUpload, targetPath, policy, length)
+	if pcsError != nil {
+		return nil, pcsError
+	}
+	rtype := pcs.policyTortype(policy)
+	return pcs.prepareFakeRapidUploadV2(targetPath, rtype, dataTime, blockListMD5)
 }
 
 // PrepareLocateDownload 获取下载链接, 只返回服务器响应数据和错误信息
@@ -403,6 +455,7 @@ func (pcs *BaiduPCS) PrepareLocateDownload(pcspath string) (dataReadCloser io.Re
 		Host:   pcs.URL().Host,
 		Path:   "/rest/2.0/pcs/file",
 		RawQuery: (url.Values{
+			"ant":        []string{"1"},
 			"check_blue": []string{"1"},
 			"es":         []string{"1"},
 			"esl":        []string{"1"},
@@ -420,7 +473,7 @@ func (pcs *BaiduPCS) PrepareLocateDownload(pcspath string) (dataReadCloser io.Re
 	}
 	baiduPCSVerbose.Infof("%s URL: %s\n", OperationLocateDownload, pcsURL)
 
-	dataReadCloser, pcsError = pcs.sendReqReturnReadCloser(reqTypePCS, OperationLocateDownload, http.MethodGet, pcsURL.String(), nil, pcs.getPanUAHeader())
+	dataReadCloser, pcsError = pcs.sendReqReturnReadCloser(reqTypePCS, OperationLocateDownload, http.MethodPost, pcsURL.String(), nil, pcs.getPanUAHeader())
 	return
 }
 
@@ -507,43 +560,32 @@ func (pcs *BaiduPCS) PrepareUploadTmpFile(uploadFunc UploadFunc) (dataReadCloser
 }
 
 // PrepareUploadCreateSuperFile 分片上传—合并分片文件, 只返回服务器响应数据和错误信息
-func (pcs *BaiduPCS) PrepareUploadCreateSuperFile(policy string, checkDir bool, targetPath string, blockList ...string) (dataReadCloser io.ReadCloser, pcsError pcserror.Error) {
+func (pcs *BaiduPCS) PrepareUploadCreateSuperFile(uploadid, rtype string, fileSize int64, targetPath string, blockList []string) (dataReadCloser io.ReadCloser, pcsError pcserror.Error) {
 	pcs.lazyInit()
 
-	if checkDir {
-		// 检查是否为目录
-		pcsError = pcs.CheckIsdir(OperationUploadCreateSuperFile, targetPath, "", 0)
-		if pcsError != nil {
-			return nil, pcsError
-		}
-	}
+	panURL := pcs.generatePanURL("create", nil)
 
-	bl := BlockListJSON{
-		BlockList: blockList,
-	}
+	baiduPCSVerbose.Infof("%s URL: %s\n", OperationUploadCreateSuperFile, panURL)
 
-	sendData, err := jsoniter.Marshal(&bl)
-	if err != nil {
-		panic(err)
-	}
-
-	pcsURL := pcs.generatePCSURL("file", "createsuperfile", map[string]string{
-		"path":  targetPath,
-		"ondup": strings.Replace(policy, "rsync", "overwrite", -1),
+	dataReadCloser, pcsError = pcs.sendReqReturnReadCloser(reqTypePan, OperationUploadCreateSuperFile, http.MethodPost, panURL.String(), map[string]string{
+		"uploadid": uploadid,
+		"path":     targetPath,
+		"size":     strconv.FormatInt(fileSize, 10),
+		"isdir":    "0",
+		"rtype":    rtype,
+		//"local_mtime": strconv.FormatInt(dataTime, 10),
+		//"local_ctime": strconv.FormatInt(dataTime, 10),
+		"block_list":  mergeStringList(blockList...),
+		"target_path": path.Dir(targetPath),
+		//"bdstoken":    bdstoken,
+	}, map[string]string{
+		"Content-Type": "application/x-www-form-urlencoded",
 	})
-	baiduPCSVerbose.Infof("%s URL: %s\n", OperationUploadCreateSuperFile, pcsURL)
-
-	// 表单上传
-	mr := multipartreader.NewMultipartReader()
-	mr.AddFormField("param", bytes.NewReader(sendData))
-	mr.CloseMultipart()
-
-	dataReadCloser, pcsError = pcs.sendReqReturnReadCloser(reqTypePCS, OperationUploadCreateSuperFile, http.MethodPost, pcsURL.String(), mr, nil)
 	return
 }
 
 // PrepareUploadPrecreate 分片上传—Precreate, 只返回服务器响应数据和错误信息
-func (pcs *BaiduPCS) PrepareUploadPrecreate(targetPath, contentMD5, sliceMD5, crc32 string, size int64, bolckList ...string) (dataReadCloser io.ReadCloser, panError pcserror.Error) {
+func (pcs *BaiduPCS) PrepareUploadPrecreate(targetPath, contentMD5, sliceMD5, crc32 string, size int64, blockList []string) (dataReadCloser io.ReadCloser, panError pcserror.Error) {
 	pcs.lazyInit()
 	panURL := &url.URL{
 		Scheme: "https",
@@ -556,7 +598,7 @@ func (pcs *BaiduPCS) PrepareUploadPrecreate(targetPath, contentMD5, sliceMD5, cr
 		"path":         targetPath,
 		"size":         strconv.FormatInt(size, 10),
 		"isdir":        "0",
-		"block_list":   mergeStringList(bolckList...),
+		"block_list":   mergeStringList(blockList...),
 		"autoinit":     "1",
 		"content-md5":  contentMD5,
 		"slice-md5":    sliceMD5,

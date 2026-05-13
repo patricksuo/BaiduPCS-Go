@@ -4,16 +4,16 @@ import (
 	"crypto/md5"
 	"fmt"
 	"github.com/qjfoidnh/BaiduPCS-Go/baidupcs"
-	"github.com/qjfoidnh/BaiduPCS-Go/pcsutil/converter"
 	"io"
 	"strconv"
 )
 
 func getBlockSize(fileSize int64) int64 {
 	blockSize := baidupcs.MinUploadBlockSize
-	if fileSize > 1*converter.GB && fileSize < 4*converter.GB {
-		blockSize = 2 * baidupcs.MinUploadBlockSize
-	} else if fileSize >= 4*converter.GB {
+	if fileSize >= baidupcs.MiddleUploadThreshold {
+		blockSize = baidupcs.MiddleUploadBlockSize
+	}
+	if fileSize >= baidupcs.MaxUploadThreshold {
 		blockSize = baidupcs.MaxUploadBlockSize
 	}
 	return blockSize

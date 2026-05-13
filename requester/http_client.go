@@ -33,7 +33,6 @@ func (h *HTTPClient) lazyInit() {
 		h.transport = &http.Transport{
 			Proxy:       proxyFunc,
 			DialContext: dialContext,
-			Dial:        dial,
 			// DialTLS:     h.dialTLSFunc(),
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,
