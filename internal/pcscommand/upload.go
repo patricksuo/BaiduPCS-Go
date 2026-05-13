@@ -170,8 +170,11 @@ func RunUpload(localPaths []string, savePath string, opt *UploadOptions) {
 	if failedList.Size() != 0 {
 		fmt.Printf("以下文件上传失败: \n")
 		tb := pcstable.NewTable(os.Stdout)
-		for e := failedList.Shift(); e != nil; e = failedList.Shift() {
-			item := e.(*taskframework.TaskInfoItem)
+		for {
+			item, ok := failedList.Shift()
+			if !ok {
+				break
+			}
 			tb.Append([]string{item.Info.Id(), item.Unit.(*pcsupload.UploadTaskUnit).LocalFileChecksum.Path})
 		}
 		tb.Render()

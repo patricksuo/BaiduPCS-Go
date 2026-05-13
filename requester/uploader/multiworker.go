@@ -3,7 +3,7 @@ package uploader
 import (
 	"context"
 	"errors"
-	"github.com/oleiade/lane"
+	"github.com/qjfoidnh/BaiduPCS-Go/pcsutil/syncdeque"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcsutil/waitgroup"
 	"os"
 	"sync"
@@ -44,7 +44,7 @@ func (muer *MultiUploader) upload() (uperr error) {
 		return err
 	}
 	var (
-		uploadDeque = lane.NewDeque()
+		uploadDeque = syncdeque.New[*worker]()
 	)
 
 	var (
@@ -62,12 +62,11 @@ func (muer *MultiUploader) upload() (uperr error) {
 	for {
 		wg := waitgroup.NewWaitGroup(muer.config.Parallel)
 		for {
-			e := uploadDeque.Shift()
-			if e == nil { // 任务为空
+			wer, ok := uploadDeque.Shift()
+			if !ok { // 任务为空
 				break
 			}
 
-			wer := e.(*worker)
 			wg.AddDelta()
 			go func() {
 				defer wg.Done()

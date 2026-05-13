@@ -5,7 +5,6 @@ go 1.25.0
 require (
 	github.com/fatih/color v1.18.0
 	github.com/mattn/go-runewidth v0.0.16
-	github.com/oleiade/lane v1.0.1
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/peterh/liner v1.2.2
 	github.com/tidwall/gjson v1.18.0

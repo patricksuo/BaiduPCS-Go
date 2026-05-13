@@ -101,7 +101,7 @@ func RunDownload(paths []string, options *DownloadOptions) {
 	)
 
 	// 预测要下载的文件数量
-	file_dir_list := make([]*baidupcs.FileDirectory,0,10)
+	file_dir_list := make([]*baidupcs.FileDirectory, 0, 10)
 	for k := range paths {
 		pcs.FilesDirectoriesRecurseList(paths[k], baidupcs.DefaultOrderOptions, func(depth int, _ string, fd *baidupcs.FileDirectory, pcsError pcserror.Error) bool {
 			if pcsError != nil {
@@ -139,7 +139,7 @@ func RunDownload(paths []string, options *DownloadOptions) {
 	sort.Slice(file_dir_list, func(i, j int) bool {
 		return file_dir_list[i].Size < file_dir_list[j].Size
 	})
-	for _,v := range file_dir_list {
+	for _, v := range file_dir_list {
 		newCfg := *cfg
 		unit := pcsdownload.DownloadTaskUnit{
 			Cfg:                  &newCfg, // 复制一份新的cfg
@@ -188,8 +188,11 @@ func RunDownload(paths []string, options *DownloadOptions) {
 	if failedList.Size() != 0 {
 		fmt.Printf("以下文件下载失败: \n")
 		tb := pcstable.NewTable(os.Stdout)
-		for e := failedList.Shift(); e != nil; e = failedList.Shift() {
-			item := e.(*taskframework.TaskInfoItem)
+		for {
+			item, ok := failedList.Shift()
+			if !ok {
+				break
+			}
 			tb.Append([]string{item.Info.Id(), item.Unit.(*pcsdownload.DownloadTaskUnit).PcsPath})
 		}
 		tb.Render()
