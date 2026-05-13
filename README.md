@@ -24,7 +24,6 @@ iikira/BaiduPCS-Go was largely inspired by [GangZhuo/BaiduPCS](https://github.co
   * [Android / iOS](#android--ios)
 - [命令列表及说明](#命令列表及说明)
   * [注意 ! ! !](#注意---)
-  * [检测程序更新](#检测程序更新)
   * [登录百度帐号](#登录百度帐号)
   * [列出帐号列表](#列出帐号列表)
   * [获取当前帐号](#获取当前帐号)
@@ -40,7 +39,6 @@ iikira/BaiduPCS-Go was largely inspired by [GangZhuo/BaiduPCS](https://github.co
   * [下载文件/目录](#下载文件目录)
   * [上传文件/目录](#上传文件目录)
   * [获取下载直链](#获取下载直链)
-  * [修复文件MD5](#修复文件MD5)
   * [创建目录](#创建目录)
   * [删除文件/目录](#删除文件目录)
   * [拷贝文件/目录](#拷贝文件目录)
@@ -88,15 +86,37 @@ iikira/BaiduPCS-Go was largely inspired by [GangZhuo/BaiduPCS](https://github.co
 
 [下载](#下载文件目录)网盘内文件, 支持多个文件或目录下载, 支持断点续传和单文件并行下载;
 
-[上传](#上传文件目录)本地文件, 支持上传大文件(>2GB), 支持多个文件或目录上传;
+[上传](#上传文件目录)本地文件, 支持上传最大128G大文件, 支持多个文件或目录上传;
 
-[转存](#转存文件目录)其他用户分享的文件, 支持带密码的分享链接; 
-
-[导出](#导出文件目录)网盘内的文件秒传链接, 可选导出BaiduPCS-Go原生格式或通用格式;
+[转存](#转存文件目录)其他用户分享的文件, 支持带密码的分享链接;
 
 [离线下载](#离线下载), 支持http/https/ftp/电驴/磁力链协议.
-
 # 版本更新
+
+> 本仓库为 fork: 在上游 v4.0.1 基础上移除了交互式用户名/密码登录、`update` 在线更新功能, 将 crypto 库内置到本仓库, 并清理了若干冗余依赖. 下方版本日志为上游主线记录.
+
+**2026.03.26** v4.0.1
+- 紧急修复ls等命令的param error
+
+**2025.10.29** v4.0.0
+- 上传重新支持跳过秒传`--norapid`
+- 上传同名文件覆盖策略`--policy`支持`skip`,`overwrite`,`rsync`; 支持`config`配置全局默认策略
+- 因接口变化上传不再支持断点续传, 下载不受影响
+- 增加`config`配置`proxy_hostnames`, 国外VPS用户如遇上传问题可尝试为`pan.baidu.com`配置回国代理
+- 其他细节优化
+
+**2025.08.30** v3.9.9
+- 最大上传单文件支持至128G
+- 上传速度优化
+- 下载取消文件预分配
+- 因官方接口变动上传文件强制计算秒传
+- transfer命令修复`--download`参数
+
+**2025.08.29** v3.9.8
+- 全面修复了上传文件的问题
+- 全面修复了下载文件的问题
+- 去除部分已不可用的功能和已不支持的参数
+
 **2025.01.07** v3.9.7
 - fix #359, #360
 - fix #339
@@ -330,38 +350,20 @@ cli交互模式下, 光标所在行的前缀应为 `BaiduPCS-Go >`, 如果登录
 
 cli交互模式已支持按tab键自动补全命令和路径.
 
-## 检测程序更新
-```
-BaiduPCS-Go update
-```
-
 ## 登录百度帐号
 
-### 常规登录百度帐号
-
-支持在线验证绑定的手机号或邮箱,
-注: 此方式已长期不维护, 建议使用其他登录方式
-```
-BaiduPCS-Go login
-```
-
-### 使用百度 BDUSS 来登录百度帐号
-
-[关于 获取百度 BDUSS](https://blog.csdn.net/ykiwmy/article/details/103730962)
-
-```
-BaiduPCS-Go login -bduss=<BDUSS>
-```
+> 注: 本仓库已移除交互式用户名/密码登录, 请使用下面的 BDUSS+STOKEN 或 Cookies 方式登录.
 
 ### 使用百度 BDUSS 和 百度网盘 STOKEN 来登录百度账号
 
-STOKEN 获取方式与 BDUSS 基本相同。注意 STOKEN 必须在百度网盘页面获取，否则无效.
+[关于 获取百度 BDUSS](https://blog.csdn.net/ykiwmy/article/details/103730962) STOKEN 获取方式与 BDUSS 基本相同。注意 STOKEN 必须在百度网盘页面获取，否则无效.
+STOKEN是cookie中的一个字段, 注意不是bdstoken, 如果拿到的STOKEN里没有大写字母多半是拿错了
 
 ```
 BaiduPCS-Go login -bduss=<BDUSS> -stoken=<STOKEN>
 ```
 
-### 使用百度 Cookies 来登录百度账号
+### 使用百度 Cookies 来登录百度账号(推荐)
 
 [关于 获取百度 Cookies](https://jingyan.baidu.com/article/5553fa829a6a9e65a23934b0.html)
 教程中为百度经验的Cookies获取, 这里换成百度网盘首页即可.
@@ -372,11 +374,7 @@ BaiduPCS-Go login -cookies=<Cookies>
 
 #### 例子
 ```
-BaiduPCS-Go login -bduss=1234567
-```
-```
-BaiduPCS-Go login
-请输入百度用户名(手机号/邮箱/用户名), 回车键提交 > 1234567
+BaiduPCS-Go login -bduss=1234567 -stoken=234567
 ```
 ```
 BaiduPCS-Go login -cookies="BAIDUID=50949C0890YG9735EA6Q3870AFE38:FG=1; BIDUPSID=112335C0ACCAFFJW675EA69A870AFE38; PSTM=1981928511; BDORZ=D6745EBF6F3SW24E515D22A1598; PANWEB=1; BDUSS=ASAYUGFHSTFKGBGSU; STOKEN=gfsdge9gisfgspig34254d7879eee5756b10sgeyrw5vyw342td510ffc9414d32251; SCRC=cwrywec5evyetra26bvvehefvfg6a8; BDCLND=C%4sfgGysrZ%2BML6; PANPSC=wreyewygdfhdggedhsdfg4353"
@@ -570,8 +568,6 @@ BaiduPCS-Go d <网盘文件或目录的路径1> <文件或目录2> <文件或目
 
 支持多个文件或目录下载.
 
-支持下载完成后自动校验文件, 但并不是所有的文件都支持校验!
-
 自动跳过下载重名的文件!
 
 
@@ -598,25 +594,14 @@ BaiduPCS-Go upload <本地文件/目录的路径1> <文件/目录2> <文件/目�
 BaiduPCS-Go u <本地文件/目录的路径1> <文件/目录2> <文件/目录3> ... <目标目录>
 ```
 
-* 上传默认采用分片上传的方式, 上传的文件将会保存到, <目标目录>.
+* 上传默认采用分片上传的方式, 上传的文件将会保存到, <目标目录>. 不支持断点续传
 
-* 遇到同名文件将会自动覆盖!!
+* 遇到同名文件会自动跳过, 也可配置`upload_policy`选择覆盖或者只跳过同大小文件
 
 * 当上传的文件名和网盘的目录名称相同时, 不会覆盖目录, 防止丢失数据.
 
+* 所有上传均默认检测秒传, 可添加参数`--norapid`跳过
 
-#### 注意:
-
-* 分片上传之后, 服务器可能会记录到错误的文件md5, 可使用 fixmd5 命令尝试修复文件的MD5值, 修复md5不一定能成功, 但文件的完整性是没问题的.
-
-fixmd5 命令使用方法:
-```
-BaiduPCS-Go fixmd5 -h
-```
-
-* 禁用分片上传可以保证服务器记录到正确的md5.
-
-* 禁用分片上传时只能使用单线程上传, 指定的单个文件上传最大线程数将会无效.
 
 #### 例子:
 ```
@@ -624,11 +609,14 @@ BaiduPCS-Go fixmd5 -h
 # 注意区别反斜杠 "\" 和 斜杠 "/" !!!
 BaiduPCS-Go upload C:/Users/Administrator/Desktop/1.mp4 /视频
 
+# 将本地的 C:\Users\Administrator\Desktop\1.mp4 上传到网盘 /视频 目录, 不检测秒传
+BaiduPCS-Go upload C:/Users/Administrator/Desktop/1.mp4 /视频 --norapid
+
 # 将本地的 C:\Users\Administrator\Desktop\1.mp4 和 C:\Users\Administrator\Desktop\2.mp4 上传到网盘 /视频 目录
 BaiduPCS-Go upload C:/Users/Administrator/Desktop/1.mp4 C:/Users/Administrator/Desktop/2.mp4 /视频
 
-# 将本地的 C:\Users\Administrator\Desktop 整个目录上传到网盘 /视频 目录
-BaiduPCS-Go upload C:/Users/Administrator/Desktop /视频
+# 将本地的 C:\Users\Administrator\Desktop 整个目录上传到网盘 /视频 目录, 只覆盖与本地大小不同的同名文件
+BaiduPCS-Go upload C:/Users/Administrator/Desktop /视频 --policy rsync
 ```
 
 ## 获取下载直链
@@ -636,59 +624,10 @@ BaiduPCS-Go upload C:/Users/Administrator/Desktop /视频
 BaiduPCS-Go locate <文件1> <文件2> ...
 ```
 
-#### 注意
+#### 例子:
 
-若该功能无法正常使用, 提示`user is not authorized, hitcode:xxx`, 尝试更换 User-Agent 为 `netdisk;2.2.51.6;netdisk;10.0.63;PC;android-android`:
 ```
 BaiduPCS-Go config set -user_agent "netdisk;2.2.51.6;netdisk;10.0.63;PC;android-android"
-```
-
-
-## 修复文件MD5
-```
-BaiduPCS-Go fixmd5 <文件1> <文件2> <文件3> ...
-```
-
-尝试修复文件的MD5值, 以便于校验文件的完整性和导出文件.
-
-使用分片上传文件, 当文件分片数大于1时, 百度网盘服务端最终计算所得的md5值和本地的不一致, 这可能是百度网盘的bug.
-
-不过把上传的文件下载到本地后，对比md5值是匹配的, 也就是文件在传输中没有发生损坏.
-
-对于MD5值可能有误的文件, 程序会在获取文件的元信息时, 给出MD5值 "可能不正确" 的提示, 表示此文件可以尝试进行MD5值修复.
-
-修复文件MD5不一定能成功, 原因可能是服务器未刷新, 可过几天后再尝试.
-
-修复文件MD5的原理为秒传文件, 即修复文件MD5成功后, 文件的**创建日期, 修改日期, fs_id, 版本历史等信息**将会被覆盖, 修复的MD5值将覆盖原先的MD5值, 但不影响文件的完整性.
-
-注意: 无法修复 **20GB** 以上文件的 md5!!
-
-#### 例子:
-```
-# 修复 /我的资源/1.mp4 的 MD5 值
-BaiduPCS-Go fixmd5 /我的资源/1.mp4
-```
-
-## 获取本地文件的秒传信息
-
-```
-
-BaiduPCS-Go sumfile <本地文件的路径>
-
-BaiduPCS-Go sf <本地文件的路径>
-
-```
-
-获取本地文件的大小, md5, 前256KB切片的 md5, crc32.
-
-#### 例子:
-
-```
-
-# 获取 C:\Users\Administrator\Desktop\1.mp4 的秒传信息
-
-BaiduPCS-Go sumfile C:/Users/Administrator/Desktop/1.mp4
-
 ```
 
 ## 导出文件/目录
@@ -968,7 +907,7 @@ Windows: `%APPDATA%\BaiduPCS-Go`
 
 谨慎修改 `appid`, `user_agent`, `pcs_ua`, `pan_ua` 的值, 否则访问网盘服务器时, 可能会出现错误.
 
-上传速度慢的海外用户可尝试修改 `pcs_addr` 值, 选择速度较快的服务器, 目前已知的地址有:
+如上传遇到异常可尝试修改 `pcs_addr`, 目前已知的地址有:
 
 ```
 pcs.baidu.com
@@ -979,6 +918,7 @@ c4.pcs.baidu.com
 c5.pcs.baidu.com
 d.pcs.baidu.com
 ```
+v3.9.8后上传时支持动态获取pcs服务器, 理论上不需要手动配置. 如希望使用静态pcs服务器, 可配置打开`fix_pcs_addr`
 
 `cache_size` 的值支持可选设置单位了, 单位不区分大小写, `b` 和 `B` 均表示字节的意思, 如 `64KB`, `1MB`, `32kb`, `65536b`, `65536`.
 
@@ -1042,7 +982,7 @@ cli交互模式下, 运行命令 `help`
 
 cli交互模式下, 运行命令 `login -h` (注意空格) 查看帮助
 
-cli交互模式下, 运行命令 `login` 程序将会提示你输入百度用户名(手机号/邮箱/用户名)和密码, 必要时还可以在线验证绑定的手机号或邮箱
+cli交互模式下, 使用 `login -bduss=<BDUSS> -stoken=<STOKEN>` 或 `login -cookies=<Cookies>` 登录百度帐号
 
 ## 3. 切换网盘工作目录
 
