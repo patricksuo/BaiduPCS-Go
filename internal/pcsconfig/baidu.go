@@ -10,9 +10,9 @@ import (
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/qjfoidnh/BaiduPCS-Go/baidupcs"
+	"github.com/qjfoidnh/BaiduPCS-Go/internal/tieba"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcstable"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcsutil/converter"
-	"github.com/qjfoidnh/baidu-tools/tieba"
 )
 
 var (

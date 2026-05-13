@@ -14,9 +14,9 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/qjfoidnh/BaiduPCS-Go/baidupcs/netdisksign"
 	"github.com/qjfoidnh/BaiduPCS-Go/baidupcs/pcserror"
+	"github.com/qjfoidnh/BaiduPCS-Go/internal/tieba"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcsutil/converter"
 	"github.com/qjfoidnh/BaiduPCS-Go/requester/multipartreader"
-	"github.com/qjfoidnh/baidu-tools/tieba"
 )
 
 type (
