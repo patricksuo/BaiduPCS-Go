@@ -31,15 +31,4 @@ func TestChecksum(t *testing.T) {
 		}
 		printFileMeta(&lf.LocalFileMeta)
 	}
-
-	fmt.Println("--- /Users/syy/go/src/github.com/qjfoidnh/BaiduPCS-Go/BaiduPCS-Go")
-	for _, flag := range flagList {
-		lf := checksum.NewLocalFileChecksumWithBufSize("/Users/syy/go/src/github.com/qjfoidnh/BaiduPCS-Go/BaiduPCS-Go", checksum.DefaultBufSize-3, checksum.DefaultBufSize)
-		err := lf.OpenPath()
-		if err != nil {
-			t.Fatal(err)
-		}
-		lf.Sum(flag)
-		printFileMeta(&lf.LocalFileMeta)
-	}
 }
